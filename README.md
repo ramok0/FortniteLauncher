@@ -1,6 +1,6 @@
 ## ⚠️ This is still in developpment, its not even a minimal viable product yet
 
-## FortniteLauncher is a third party launcher for Forntite
+## FortniteLauncher is a third party launcher for Fortnite
 
 ### Features :
 
