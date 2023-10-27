@@ -17,6 +17,8 @@ pub const LAUNCHER_APP_CLIENT_2: Client<'static> = Client {
     secret: "daafbccc737745039dffe53d94fc76cf",
 };
 
+const TOKEN:&'static str = "https://account-public-service-prod.ol.epicgames.com/account/api/oauth/token";
+
 #[derive(serde::Deserialize, Clone)]
 pub struct DeviceCode {
     pub user_code: String,
@@ -51,7 +53,7 @@ pub async fn client_credentials<'a>(
 
     let response = handle_epic_response(
         rest::CLIENT
-            .post("https://account-public-service-prod.ol.epicgames.com/account/api/oauth/token")
+            .post(TOKEN)
             .form(&body)
             .basic_auth(client.id, Some(client.secret))
             .send()
@@ -94,7 +96,7 @@ pub async fn login_with_device_code<'a>(details:&DeviceCode, client: &Client<'a>
 
     let response = handle_epic_response(
         rest::CLIENT
-            .post("https://account-public-service-prod.ol.epicgames.com/account/api/oauth/token")
+            .post(TOKEN)
             .form(&body)
             .basic_auth(client.id, Some(client.secret))
             .send()
@@ -120,7 +122,22 @@ pub async fn exchange_code<'a>(details:&Details) -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
-// pub async fn exchange_to<'a>(details:&Details, exchange_to:&Client<'a>) -> Result<Details, Box<dyn std::error::Error>>
-// {
+pub async fn exchange_to<'a>(details:&Details, exchange_to:&Client<'a>) -> Result<Details, Box<dyn std::error::Error>>
+{
+    let _ = exchange_code(&details).await?;
 
-// }
+    let mut body = HashMap::new();
+    body.insert("grant_type", "exchange_code");
+    body.insert("exchange_code", "//TODO");
+
+    let response = handle_epic_response(
+        rest::CLIENT
+        .post(TOKEN)
+        .basic_auth(exchange_to.id, Some(exchange_to.secret))
+        .form(&body)
+        .send()
+        .await?
+    ).await?;
+
+    Ok(response.json::<Details>().await?)
+}
