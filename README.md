@@ -10,3 +10,18 @@
 [ ] Choose between start Fortnite as intented or start Fortnite without anticheat
 [ ] Start Fortnite
 [ ] Inject DLL(s) into Fortnite
+
+
+## How to build ?
+
+### Prerequisites :
+
+- Having [Rust](https://www.rust-lang.org/fr/learn/get-started) installed
+
+### Build commands
+
+```bash
+$ git clone https://github.com/ramok0/FortniteLauncher
+$ cd FortniteLauncher
+$ cargo build --release
+```
