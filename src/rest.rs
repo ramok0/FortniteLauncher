@@ -63,7 +63,10 @@ pub async fn handle_epic_response(response:Response) -> Result<Response, EpicErr
 
     match status_code {
         404 => return Err(EpicError::NotFound),
-        403 => return Err(EpicError::Forbidden),
+        403 => {
+            println!("Body : {}", response.text().await.unwrap());
+            return Err(EpicError::Forbidden)
+        },
         429 => return Err(EpicError::RateLimited),
         401 => return Err(EpicError::Unauthorized),
         _ => ()

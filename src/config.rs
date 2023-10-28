@@ -1,6 +1,8 @@
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct DeviceAuth {
+    #[serde(rename = "accountId")]
     pub account_id: String,
+    #[serde(rename = "deviceId")]
     pub device_id: String,
     pub secret: String,
 }
