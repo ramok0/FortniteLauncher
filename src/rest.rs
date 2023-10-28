@@ -78,7 +78,7 @@ pub async fn handle_epic_response(response:Response) -> Result<Response, EpicErr
             Ok(data) => {
                 return Err(EpicError::Unknown(data))
             },
-            Err(err) => {
+            Err(_err) => {
                 //TODO : parse epic known errors codes
 
                 return Err(EpicError::Other)

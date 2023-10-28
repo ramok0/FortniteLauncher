@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use crate::rest::{self, handle_epic_response, EpicError};
 
@@ -12,6 +12,7 @@ pub const FORTNITE_NEW_SWITCH_GAME_CLIENT: Client<'static> = Client {
     secret: "0a2449a2-001a-451e-afec-3e812901c4d7",
 };
 
+#[allow(dead_code)]
 pub const LAUNCHER_APP_CLIENT_2: Client<'static> = Client {
     id: "34a02cf8f4414e29b15921876da36f9a",
     secret: "daafbccc737745039dffe53d94fc76cf",
@@ -122,6 +123,7 @@ pub async fn exchange_code<'a>(details:&Details) -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
+#[allow(dead_code)] //wont be used till auth is not fixed anyway
 pub async fn exchange_to<'a>(details:&Details, exchange_to:&Client<'a>) -> Result<Details, Box<dyn std::error::Error>>
 {
     let _ = exchange_code(&details).await?;
