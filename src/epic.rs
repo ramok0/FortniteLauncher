@@ -84,8 +84,7 @@ pub struct AccountDetails {
     #[serde(rename = "displayName")]
     pub display_name: String,
     pub app: String,
-    pub in_app_id: String,
-    pub device_id: String,
+    pub in_app_id: String
 }
 
 #[derive(Default, Debug, Clone)]
@@ -200,7 +199,7 @@ pub async fn create_device_code(
 }
 
 
-pub async fn login_with_device_code<'a>(device_code:&DeviceCode, client: &Client<'a>) -> Result<BasicDetails, Box<dyn std::error::Error>>
+pub async fn login_with_device_code<'a>(device_code:&DeviceCode, client: &Client<'a>) -> Result<AccountDetails, Box<dyn std::error::Error>>
 {
     let mut body = HashMap::new();
     body.insert("grant_type", "device_code");
@@ -220,7 +219,7 @@ pub async fn login_with_device_code<'a>(device_code:&DeviceCode, client: &Client
     )
     .await?;
 
-    Ok(response.json::<BasicDetails>().await?)
+    Ok(response.json::<AccountDetails>().await?)
 }
 
 pub async fn exchange_code<'a, T:HasToken>(details:&T) -> Result<ExchangeCode, Box<dyn std::error::Error>>
@@ -288,4 +287,23 @@ where T: HasToken + HasIdentity
     ).await?;
 
     Ok(response.json::<DeviceAuth>().await?)
+}
+
+pub async fn login_with_device_auth<'a>(device_auth:&DeviceAuth, client:&Client<'a>) -> Result<AccountDetails, Box<dyn std::error::Error>>
+{
+    let mut body = HashMap::new();
+    body.insert("grant_type", "device_auth");
+    body.insert("account_id", &device_auth.account_id);
+    body.insert("device_id", &device_auth.device_id);
+    body.insert("secret", &device_auth.secret);
+
+    let response = handle_epic_response(
+        rest::CLIENT
+        .post(TOKEN)
+        .basic_auth(client.id, Some(client.secret))
+        .form(&body)
+        .send().await?
+    ).await?;
+
+    Ok(response.json::<AccountDetails>().await?)
 }

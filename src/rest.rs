@@ -30,6 +30,7 @@ pub enum EpicError {
     Forbidden,
     InternalError,
     ClientMismatch,
+    Expired,
     Other,
     Unknown(EpicErrorDescriptor)
 }
@@ -44,6 +45,7 @@ impl std::fmt::Display for EpicError {
             EpicError::InternalError => write!(f, "Unreachable server.")?,
             EpicError::ClientMismatch => write!(f, "You are using the wrong client")?,
             EpicError::Other => write!(f, "Internal Error")?,
+            EpicError::Expired => write!(f, "Expired")?,
             EpicError::Unknown(data) => {
                 write!(f, "Error code : {}\nError Messsage : {}\nNumeric error code : {}\nIntent : {}\n", data.error_code, data.error_message, data.numeric_error_code, data.intent)?;
                 if let Some(vars) = &data.message_vars {
