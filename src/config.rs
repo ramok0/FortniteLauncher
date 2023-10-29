@@ -10,6 +10,7 @@ pub struct DeviceAuth {
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct Configuration {
     pub device_auth: Option<DeviceAuth>,
+    pub fortnite_path: Option<String>
 }
 
 impl Configuration {
@@ -30,7 +31,7 @@ impl Configuration {
     }
 
     pub fn flush(&self) -> Result<(), Box<dyn std::error::Error>> {
-        std::fs::write("config.json", serde_json::to_string(&self)?)?;
+        std::fs::write("config.json", serde_json::to_string_pretty(&self)?)?;
         println!("Flushed configuration successfully !");
         Ok(())
     }
@@ -44,6 +45,6 @@ impl Drop for Configuration {
 
 impl Default for Configuration {
     fn default() -> Self {
-        Self { device_auth: None }
+        Self { device_auth: None, fortnite_path: None }
     }
 }

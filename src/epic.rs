@@ -1,5 +1,7 @@
 use std::{collections::HashMap, str::FromStr};
 
+use serde::de;
+
 use crate::{rest::{self, handle_epic_response, EpicError}, config::DeviceAuth};
 
 #[derive(Debug)]
@@ -23,6 +25,37 @@ impl std::str::FromStr for AuthentificationType {
 pub struct Client<'a> {
     pub id: &'a str,
     pub secret: &'a str,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq)]
+pub struct AntiCheatProviderIn {
+    pub account_id:String,
+    pub exchange_code:String,
+    pub epic_app:String,
+    pub test_mode:bool,
+    pub nvidia:bool,
+    pub luna:bool,
+    pub salmon:bool,
+}
+
+impl Default for AntiCheatProviderIn {
+    fn default() -> Self {
+        Self {
+            account_id: String::new(),
+            exchange_code: String::new(),
+            epic_app: String::from("fortnite"),
+            test_mode: false,
+            nvidia: false,
+            salmon: false,
+            luna: false
+        }
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct AntiCheatProvider {
+    pub provider:String,
+    pub jwt:String
 }
 
 pub const FORTNITE_NEW_SWITCH_GAME_CLIENT: Client<'static> = Client {
@@ -306,4 +339,22 @@ pub async fn login_with_device_auth<'a>(device_auth:&DeviceAuth, client:&Client<
     ).await?;
 
     Ok(response.json::<AccountDetails>().await?)
+}
+
+pub async fn request_anti_cheat_provider<T>(details:&T) -> Result<AntiCheatProvider, Box<dyn std::error::Error>>
+where T:HasIdentity + HasToken
+{
+    let code = exchange_code(details).await?;
+    let mut body = AntiCheatProviderIn::default();
+    body.account_id = details.get_account_id().to_string();
+    body.exchange_code = code.code.to_string();
+
+    let response = handle_epic_response(
+        rest::CLIENT
+        .post("https://caldera-service-prod.ecosec.on.epicgames.com/caldera/api/v1/launcher/racp")
+        .body(serde_json::to_string(&body)?)
+        .send().await?
+    ).await?;
+
+    Ok(response.json::<AntiCheatProvider>().await?)
 }
