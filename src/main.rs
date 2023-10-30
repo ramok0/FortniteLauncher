@@ -65,6 +65,7 @@ async fn onboarding_device_code(
             .await
         {
             Ok(details) => {
+                let details = epic::exchange_to(&details, &FORTNITE_IOS_GAME_CLIENT).await?;
                 let device_auth = epic::create_device_auth(&details).await?;
 
                 configuration.device_auth = Some(device_auth);

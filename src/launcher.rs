@@ -78,7 +78,7 @@ pub fn get_launcher_installed() -> Result<LauncherInstalled, Box<dyn std::error:
     }
 }
 
-const CURRENT_OBFUSCATION_ID: &str = "ts8I5xx-YxQxC3swakWvk_NTAGp5XA";
+const CURRENT_OBFUSCATION_ID: &str = "ts8I5xx-YxQxC3swakWvk_NTAzp5XA";
 pub fn generate_arguments<'a, T>(
     details: &'a T,
     exchange_code: &'a ExchangeCode,
