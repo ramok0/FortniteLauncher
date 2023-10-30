@@ -6,10 +6,10 @@
 
 ### Features :
 
-[ ] Login into your EpicGames account, (even multiple account)
-[ ] Choose between start Fortnite as intented or start Fortnite without anticheat
-[ ] Start Fortnite
-[ ] Inject DLL(s) into Fortnite
+- [x] Login into your EpicGames account, (even multiple account)
+- [ ] Choose between start Fortnite as intented or start Fortnite without anticheat
+- [x] Start Fortnite
+- [ ] Inject DLL(s) into Fortnite
 
 
 ## How to build ?
