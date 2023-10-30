@@ -145,30 +145,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if cfg!(debug_assertions) {
         println!("Created exchange code successfully : {}", &exchange_code.code);
     }
+    
     let arguments = launcher::generate_arguments(&details, &exchange_code, &anti_cheat);
 
-    let mut fortnite_binary_folder = std::path::PathBuf::from(configuration.fortnite_path.clone().unwrap());
-    fortnite_binary_folder.push("FortniteGame/Binaries/Win64");
-
+    let fortnite_binary_folder = std::path::PathBuf::from(configuration.fortnite_path.clone().unwrap()).join("FortniteGame/Binaries/Win64");
     if !fortnite_binary_folder.exists()
     {
         return Err("Fortnite Binary does not exists !".into());
     }
 
-    let mut fortnite_launcher_path_buf = fortnite_binary_folder.clone();
-    fortnite_launcher_path_buf.push("FortniteLauncher.exe");
-
-    let mut fortnite_binary_path_buf = fortnite_binary_folder.clone();
-    fortnite_binary_path_buf.push("FortniteClient-Win64-Shipping.exe");
-
-    let mut fortnite_anticheat_path_buf = fortnite_binary_folder.clone();
-    
-    match anti_cheat.provider.as_str() {
-        "EasyAntiCheat" => fortnite_anticheat_path_buf.push("FortniteClient-Win64-Shipping_EAC.exe"),
-        "EasyAntiCheatEOS" => fortnite_anticheat_path_buf.push("FortniteClient-Win64-Shipping_EAC_EOS.exe"),
-        "BattlEye" => fortnite_anticheat_path_buf.push("FortniteClient-Win64-Shipping_BE.exe"),
-        _ => ()
-    }
+    let fortnite_launcher_path_buf = fortnite_binary_folder.join("FortniteLauncher.exe");
+    let fortnite_binary_path_buf = fortnite_binary_folder.join("FortniteClient-Win64-Shipping.exe");
+    let fortnite_anticheat_path_buf = fortnite_binary_folder.join(    match anti_cheat.provider.as_str() {
+        "EasyAntiCheat" => "FortniteClient-Win64-Shipping_EAC.exe",
+        "EasyAntiCheatEOS" => "FortniteClient-Win64-Shipping_EAC_EOS.exe",
+        "BattlEye" => "FortniteClient-Win64-Shipping_BE.exe",
+        _ => todo!()
+    });
 
     launcher::create_process(fortnite_anticheat_path_buf.to_str().ok_or("Failed to str")?,  None, true)?;
     launcher::create_process(fortnite_launcher_path_buf.to_str().ok_or("Failed to str")?, None, true)?;
