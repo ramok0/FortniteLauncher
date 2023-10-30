@@ -21,7 +21,7 @@ mod rest;
 async fn onboarding_authorization_code(
     configuration: &mut Configuration,
 ) -> Result<AccountDetails, Box<dyn std::error::Error>> {
-    print!("\nGet your device code here : https://www.epicgames.com/id/api/redirect?clientId={}&responseType=code\nAuthorization code : ", FORTNITE_IOS_GAME_CLIENT.id);
+    print!("\nGet your authorization code here : https://www.epicgames.com/id/api/redirect?clientId={}&responseType=code\nAuthorization code : ", FORTNITE_IOS_GAME_CLIENT.id);
     std::io::stdout().flush()?;
 
     let mut authorization_code = String::new();
@@ -141,6 +141,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let exchange_code = epic::exchange_code(&details).await?;
+    if cfg!(debug_assertions) {
+        println!("Created exchange code successfully : {}", &exchange_code.code);
+    }
     let arguments = launcher::generate_arguments(&details, &exchange_code, &anti_cheat);
 
     let mut fortnite_binary_folder = std::path::PathBuf::from(configuration.fortnite_path.clone().unwrap());
@@ -168,7 +171,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     launcher::create_process(fortnite_anticheat_path_buf.to_str().ok_or("Failed to str")?,  None, true)?;
     launcher::create_process(fortnite_launcher_path_buf.to_str().ok_or("Failed to str")?, None, true)?;
-    launcher::spawn_process(fortnite_binary_path_buf.to_str().ok_or("Failed to str")?, Some(arguments))?;
+    let fortnite_process = launcher::spawn_process(fortnite_binary_path_buf.to_str().ok_or("Failed to str")?, Some(arguments))?;
+
+    if cfg!(debug_assertions)
+    {
+        println!("Created Fortnite Process, PID : {}", fortnite_process.id());
+    }
 
     Ok(())
 }

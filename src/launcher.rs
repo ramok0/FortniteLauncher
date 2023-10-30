@@ -1,21 +1,18 @@
 use std::{
-    collections::HashMap,
     ffi::{CString, OsString},
-    os::windows::prelude::{AsHandle, OsStringExt},
+    os::windows::prelude::OsStringExt,
     path::PathBuf,
     process::{Child, Command},
 };
 
 use winapi::um::{
     fileapi::GetLogicalDriveStringsW,
-    handleapi::{CloseHandle, INVALID_HANDLE_VALUE},
-    libloaderapi::{GetModuleHandleA, GetProcAddress},
-    processthreadsapi::{CreateProcessA, OpenProcess, PROCESS_INFORMATION, STARTUPINFOA},
-    winbase::{CREATE_SUSPENDED, DETACHED_PROCESS, NORMAL_PRIORITY_CLASS},
-    winnt::PROCESS_SUSPEND_RESUME,
+    handleapi::CloseHandle,
+    processthreadsapi::{CreateProcessA, PROCESS_INFORMATION, STARTUPINFOA},
+    winbase::{NORMAL_PRIORITY_CLASS, CREATE_SUSPENDED}
 };
 
-use crate::epic::{self, AntiCheatProvider, ExchangeCode, HasIdentity, HasToken};
+use crate::epic::{AntiCheatProvider, ExchangeCode, HasIdentity, HasToken};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct LauncherInstalled {
@@ -123,17 +120,17 @@ where
     }
     params.push(("caldera", Some(&caldera.jwt)));
 
-    let _result = params
-        .iter()
-        .map(|arg| {
-            if let Some(value) = arg.1 {
-                format!("-{}={}", arg.0, value)
-            } else {
-                format!("-{}", arg.0)
-            }
-        })
-        .collect::<Vec<String>>()
-        .join(" ");
+    // let _result = params
+    //     .iter()
+    //     .map(|arg| {
+    //         if let Some(value) = arg.1 {
+    //             format!("-{}={}", arg.0, value)
+    //         } else {
+    //             format!("-{}", arg.0)
+    //         }
+    //     })
+    //     .collect::<Vec<String>>()
+    //     .join(" ");
 
         let result = params
         .iter()
@@ -149,38 +146,38 @@ where
     result
 }
 
-pub unsafe fn suspend_process(pid: u32) -> Result<(), Box<dyn std::error::Error>> {
-    let hProcess = OpenProcess(PROCESS_SUSPEND_RESUME, 0, pid);
+// pub unsafe fn suspend_process(pid: u32) -> Result<(), Box<dyn std::error::Error>> {
+//     let hProcess = OpenProcess(PROCESS_SUSPEND_RESUME, 0, pid);
 
-    if hProcess == INVALID_HANDLE_VALUE {
-        return Err("Failed to create a handle".into());
-    }
+//     if hProcess == INVALID_HANDLE_VALUE {
+//         return Err("Failed to create a handle".into());
+//     }
 
-    let ntdll = GetModuleHandleA(CString::new("ntdll.dll")?.as_ptr());
-    if ntdll.is_null() {
-        return Err("Failed to get NTDLL address".into());
-    }
+//     let ntdll = GetModuleHandleA(CString::new("ntdll.dll")?.as_ptr());
+//     if ntdll.is_null() {
+//         return Err("Failed to get NTDLL address".into());
+//     }
 
-    let function_name = CString::new("NtSuspendProcess")?;
+//     let function_name = CString::new("NtSuspendProcess")?;
 
-    let function_ptr = GetProcAddress(ntdll, function_name.as_ptr());
+//     let function_ptr = GetProcAddress(ntdll, function_name.as_ptr());
 
-    if function_ptr.is_null() {
-        return Err("Failed to get NtSuspendProcess address".into());
-    }
+//     if function_ptr.is_null() {
+//         return Err("Failed to get NtSuspendProcess address".into());
+//     }
 
-    type NtSuspendProcessFn =
-        unsafe extern "system" fn(process_handle: winapi::um::winnt::HANDLE) -> u32;
-    let nt_suspend_process: NtSuspendProcessFn = unsafe { std::mem::transmute(function_ptr) };
+//     type NtSuspendProcessFn =
+//         unsafe extern "system" fn(process_handle: winapi::um::winnt::HANDLE) -> u32;
+//     let nt_suspend_process: NtSuspendProcessFn = unsafe { std::mem::transmute(function_ptr) };
 
-    let nt_status = unsafe { nt_suspend_process(hProcess) };
+//     let nt_status = unsafe { nt_suspend_process(hProcess) };
 
-    if nt_status == 0x0 {
-        return Ok(());
-    } else {
-        return Err(format!("Error : {}", nt_status).into());
-    }
-}
+//     if nt_status == 0x0 {
+//         return Ok(());
+//     } else {
+//         return Err(format!("Error : {}", nt_status).into());
+//     }
+// }
 
 pub fn spawn_process(
     path: &str,
@@ -209,7 +206,6 @@ pub fn create_process(
     };
 
     let c_arguments = CString::new(args)?;
-    // let c_environnement_path = CString::new(environnement_path)?;
 
     let mut creation_flags = NORMAL_PRIORITY_CLASS;
 

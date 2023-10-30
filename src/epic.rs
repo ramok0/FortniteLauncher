@@ -1,6 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
-
-use serde::de;
+use std::collections::HashMap;
 
 use crate::{rest::{self, handle_epic_response, EpicError}, config::DeviceAuth};
 
