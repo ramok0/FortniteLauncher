@@ -178,5 +178,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Created Fortnite Process, PID : {}", fortnite_process.id());
     }
 
+    std::thread::sleep(std::time::Duration::from_secs(10));
+
     Ok(())
 }

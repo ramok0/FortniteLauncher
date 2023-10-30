@@ -32,7 +32,9 @@ impl Configuration {
 
     pub fn flush(&self) -> Result<(), Box<dyn std::error::Error>> {
         std::fs::write("config.json", serde_json::to_string_pretty(&self)?)?;
-        println!("Flushed configuration successfully !");
+        if cfg!(debug_assertions){
+            println!("Flushed configuration successfully !");
+        }
         Ok(())
     }
 }
