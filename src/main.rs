@@ -93,7 +93,7 @@ async fn epic_login(
     } else {
         let mut choice: String = String::new();
 
-        print!("[1] AuthorizationCode\n[2] DeviceCode\n\now do you want to authentificate : ");
+        print!("[1] AuthorizationCode\n[2] DeviceCode\n\nHow do you want to authentificate : ");
         std::io::stdout().flush()?;
 
         std::io::stdin().read_line(&mut choice)?;
