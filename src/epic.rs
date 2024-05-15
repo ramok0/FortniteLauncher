@@ -263,7 +263,6 @@ pub async fn exchange_code<'a, T:HasToken>(details:&T) -> Result<ExchangeCode, B
         .await?
     ).await?;
 
-
     Ok(response.json::<ExchangeCode>().await?)
 }
 

@@ -5,14 +5,9 @@ use std::{
     process::{Child, Command},
 };
 
-use winapi::um::{
-    fileapi::GetLogicalDriveStringsW,
-    handleapi::CloseHandle,
-    processthreadsapi::{CreateProcessA, PROCESS_INFORMATION, STARTUPINFOA},
-    winbase::{NORMAL_PRIORITY_CLASS, CREATE_SUSPENDED}
-};
-
 use crate::epic::{AntiCheatProvider, ExchangeCode, HasIdentity, HasToken};
+use epic_manifest_parser_rs::manifest::{FManifest, FManifestParser};
+use windows::{core::PSTR, Win32::{Foundation::CloseHandle, Storage::FileSystem::GetLogicalDriveStringsW, System::Threading::{CreateProcessA, CREATE_SUSPENDED, NORMAL_PRIORITY_CLASS, PROCESS_INFORMATION, STARTUPINFOA}}};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct LauncherInstalled {
@@ -47,7 +42,7 @@ pub struct InstallEntry {
 pub fn get_launcher_installed() -> Result<LauncherInstalled, Box<dyn std::error::Error>> {
     let mut buffer: [u16; 255] = unsafe { std::mem::zeroed() };
 
-    let len = unsafe { GetLogicalDriveStringsW(255, buffer.as_mut_ptr()) };
+    let len = unsafe { GetLogicalDriveStringsW(Some(&mut buffer)) };
 
     let drives = OsString::from_wide(&buffer[0..len as usize])
         .to_string_lossy()
@@ -78,18 +73,17 @@ pub fn get_launcher_installed() -> Result<LauncherInstalled, Box<dyn std::error:
     }
 }
 
-const CURRENT_OBFUSCATION_ID: &str = "ts8I5xx-YxQxC3swakWvk_NTAzp5XA";
 pub fn generate_arguments<'a, T>(
     details: &'a T,
     exchange_code: &'a ExchangeCode,
     caldera: &'a AntiCheatProvider,
+    start_command: Option<&String>,
 ) -> Vec<String>
 where
     T: HasIdentity + HasToken,
 {
     let mut params: Vec<(&str, Option<&str>)> = Vec::new();
 
-    params.push(("obfuscationid", Some(CURRENT_OBFUSCATION_ID)));
     params.push(("AUTH_LOGIN", Some("unused")));
     params.push(("AUTH_PASSWORD", Some(&exchange_code.code)));
     params.push(("AUTH_TYPE", Some("exchangecode")));
@@ -132,7 +126,7 @@ where
     //     .collect::<Vec<String>>()
     //     .join(" ");
 
-        let result = params
+        let mut result = params
         .iter()
         .map(|arg| {
             if let Some(value) = arg.1 {
@@ -142,6 +136,10 @@ where
             }
         })
         .collect::<Vec<String>>();
+
+    if start_command.is_some() {
+        result.push(start_command.unwrap().clone());
+    }
 
     result
 }
@@ -179,7 +177,7 @@ where
 //     }
 // }
 
-pub fn spawn_process(
+pub fn spawn_child(
     path: &str,
     arguments: Option<Vec<String>>,
 ) -> Result<Child, Box<dyn std::error::Error>> {
@@ -205,7 +203,7 @@ pub fn create_process(
         None => format!("\"{}\"", path)
     };
 
-    let c_arguments = CString::new(args)?;
+    let c_arguments = CString::new(args.clone())?;
 
     let mut creation_flags = NORMAL_PRIORITY_CLASS;
 
@@ -217,27 +215,84 @@ pub fn create_process(
         let mut startup_info: STARTUPINFOA = std::mem::zeroed();
         let mut process_info: PROCESS_INFORMATION = std::mem::zeroed();
 
+
         if CreateProcessA(
-            std::ptr::null(),
-            c_arguments.as_ptr() as *mut i8,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-            0,
+            None,
+            PSTR::from_raw(c_arguments.as_ptr() as *mut u8),
+            None,
+            None,
+            false,
             creation_flags,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
+            None,
+            None,
             &mut startup_info as *mut STARTUPINFOA,
             &mut process_info,
-        ) != 0
+        ).is_ok()
         {
             CloseHandle(process_info.hThread);
             CloseHandle(process_info.hProcess);
 
             Ok(())
         } else {
+            eprintln!("Path : {}", args);
             Err("Windows API Error".into())
         }
     };
 
     Ok(result?)
+}
+
+pub fn find_first_fortnite_manifest(paths:&[PathBuf]) -> Option<FManifest> {
+    paths.iter().find_map(|path| {
+        let manifest_data = std::fs::read(&path).unwrap();
+        let mut parser = FManifestParser::new(&manifest_data);
+
+        let manifest = parser.parse();
+        if manifest.is_err() {
+            return None;
+        }
+
+        let manifest = manifest.unwrap();
+        
+        if manifest.meta.app_name() == "FortniteReleaseBuilds" {
+            return None;
+        }
+
+        Some(manifest)
+    })
+}
+
+pub fn find_start_command(fortnite_path:&PathBuf) -> Option<String> {
+    if !fortnite_path.exists() {
+        return None;
+    }
+
+    //check ,egstore folder
+    let egstore_path = PathBuf::from(fortnite_path).join(".egstore");
+    if !egstore_path.exists() {
+        return None;
+    }
+
+    //get all .manifest files in the folder
+    let mut manifest_files = std::fs::read_dir(egstore_path)
+        .unwrap()
+        .filter_map(|entry| {
+            let entry = entry.as_ref().unwrap();
+            if entry.file_name().to_string_lossy().ends_with(".manifest") {
+                Some(entry.path())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<PathBuf>>();
+
+    manifest_files.sort_by(|a,b| {
+        //sort by modified time
+        a.metadata().unwrap().modified().unwrap().cmp(&b.metadata().unwrap().modified().unwrap())
+    });
+
+    let manifest = find_first_fortnite_manifest(&manifest_files)?;
+
+
+    Some(manifest.meta.launch_command().to_string())
 }

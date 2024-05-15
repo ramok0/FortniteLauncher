@@ -1,4 +1,4 @@
-use std::{io::Write, path::PathBuf};
+use std::{io::Write, path::{Path, PathBuf}, str::FromStr};
 
 use config::Configuration;
 //use egmanifest_rs::Parsable;
@@ -8,15 +8,16 @@ use tokio;
 use crate::{
     epic::{
         AuthentificationType, HasIdentity, FORTNITE_IOS_GAME_CLIENT,
-        FORTNITE_NEW_SWITCH_GAME_CLIENT, LAUNCHER_APP_CLIENT_2,
+        FORTNITE_NEW_SWITCH_GAME_CLIENT, LAUNCHER_APP_CLIENT_2, HasToken,
     },
-    rest::EpicError,
+    rest::{EpicError, handle_epic_response},
 };
 
 mod config;
 mod epic;
 mod launcher;
 mod rest;
+mod windows;
 
 async fn onboarding_authorization_code(
     configuration: &mut Configuration,
@@ -65,6 +66,7 @@ async fn onboarding_device_code(
             .await
         {
             Ok(details) => {
+                println!("Logged in successfully !");
                 let details = epic::exchange_to(&details, &FORTNITE_IOS_GAME_CLIENT).await?;
                 let device_auth = epic::create_device_auth(&details).await?;
 
@@ -74,7 +76,6 @@ async fn onboarding_device_code(
             }
             Err(err) => {
                 eprintln!("Error : {}", err);
-                return Err(err.into());
             }
         };
     }
@@ -145,8 +146,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if cfg!(debug_assertions) {
         println!("Created exchange code successfully : {}", &exchange_code.code);
     }
-    
-    let arguments = launcher::generate_arguments(&details, &exchange_code, &anti_cheat);
+
+    let response = handle_epic_response(
+        rest::CLIENT
+        .get(format!("https://account-public-service-prod.ol.epicgames.com/account/api/public/account/{}", details.get_account_id()))
+        .bearer_auth(details.get_access_token().token)
+        .send()
+        .await?
+    ).await?;
+
+    println!("Data : {}", response.text().await?);
+
+
+    let start_command = launcher::find_start_command(&PathBuf::from_str(configuration.fortnite_path.as_ref().unwrap()).unwrap());
+    let arguments = launcher::generate_arguments(&details, &exchange_code, &anti_cheat, start_command.as_ref());
 
     let fortnite_binary_folder = std::path::PathBuf::from(configuration.fortnite_path.clone().unwrap()).join("FortniteGame/Binaries/Win64");
     if !fortnite_binary_folder.exists()
@@ -156,16 +169,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let fortnite_launcher_path_buf = fortnite_binary_folder.join("FortniteLauncher.exe");
     let fortnite_binary_path_buf = fortnite_binary_folder.join("FortniteClient-Win64-Shipping.exe");
-    let fortnite_anticheat_path_buf = fortnite_binary_folder.join(    match anti_cheat.provider.as_str() {
+    let fortnite_anticheat_name = match anti_cheat.provider.as_str() {
         "EasyAntiCheat" => "FortniteClient-Win64-Shipping_EAC.exe",
         "EasyAntiCheatEOS" => "FortniteClient-Win64-Shipping_EAC_EOS.exe",
         "BattlEye" => "FortniteClient-Win64-Shipping_BE.exe",
         _ => todo!()
-    });
+    };
+    let fortnite_anticheat_path_buf = fortnite_binary_folder.join(fortnite_anticheat_name);
 
-    launcher::create_process(fortnite_anticheat_path_buf.to_str().ok_or("Failed to str")?,  None, true)?;
-    launcher::create_process(fortnite_launcher_path_buf.to_str().ok_or("Failed to str")?, None, true)?;
-    let fortnite_process = launcher::spawn_process(fortnite_binary_path_buf.to_str().ok_or("Failed to str")?, Some(arguments))?;
+    if unsafe {
+        windows::find_process("FortniteLauncher.exe")
+    }.is_none() {
+        launcher::create_process(fortnite_launcher_path_buf.to_str().ok_or("Failed to str")?, None, true)?;
+    }
+
+    if unsafe {
+        windows::find_process(fortnite_anticheat_name)
+    }.is_none() {
+        launcher::create_process(fortnite_anticheat_path_buf.to_str().ok_or("Failed to str")?,  None, true)?;
+    }
+
+    let fortnite_process = launcher::spawn_child(fortnite_binary_path_buf.to_str().ok_or("Failed to str")?, Some(arguments))?;
 
     if cfg!(debug_assertions)
     {
