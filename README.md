@@ -1,6 +1,7 @@
-## ⚠️ This is still in developpment, its not even a minimal viable product yet
+## ⚠️ This has been patched by EpicGames. It wont work anymore.
 
 ## FortniteLauncher is a third party launcher for Fortnite
+
 
 - It aims to be a replacement for [LlamaLauncher](https://github.com/haashemi/LlamaLauncher) with some more features.
 
